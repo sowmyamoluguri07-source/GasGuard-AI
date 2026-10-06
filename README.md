@@ -217,18 +217,19 @@ gas. Never use a funded mainnet wallet for this demo.
 
 ## 11. Installation
 
-The repository has no `package.json`, npm scripts, or Python dependency
-manifest. The backend uses the Python standard library. Use Python 3.10 or
-newer. On Windows, create a project-local virtual environment (if needed) with:
+The repository has no `package.json` or npm scripts. The forecasting engine
+uses the Python standard library; the HTTP application uses Flask and Flask-CORS,
+and Gunicorn is the production WSGI server. Use Python 3.10 or newer. On
+Windows, create a project-local virtual environment (if needed) with:
 
 ```powershell
 py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
 .\.venv\Scripts\python.exe -m backend.api
 ```
 
 If setting up a separate environment, create a Python 3.10+ virtual environment
-and run the module commands below using that environment's Python; no package
-installation is required by the current source.
+and install the dependencies from `backend/requirements.txt`.
 
 ## 12. Environment Variables
 
@@ -254,6 +255,7 @@ From the project root, start the combined Python API and static-file server:
 Then open:
 
 - Dashboard: `http://127.0.0.1:8000`
+- Health check: `http://127.0.0.1:8000/health`
 - Health check: `http://127.0.0.1:8000/api/health`
 - Dashboard JSON: `http://127.0.0.1:8000/api/dashboard`
 
@@ -282,6 +284,21 @@ timestamp,gas_fee_gwei,source
 
 The source must be `demo` or `live`. Only mark rows `live` when they come from
 actual observations.
+
+## Render Deployment
+
+Create a Render Web Service with the repository root as its root directory and
+use:
+
+- **Build command:** `pip install -r backend/requirements.txt`
+- **Start command:** `gunicorn backend.api:app --bind 0.0.0.0:$PORT --timeout 120`
+
+The app serves the existing dashboard assets and JSON endpoints. CORS is
+enabled for the public `/api/*` and `/health` endpoints so a separately hosted
+Vercel frontend can call this service. These endpoints do not use credentials.
+Set `GASGUARD_DATA_CSV` or `GASGUARD_DB_PATH` only when intentionally configuring
+those existing data sources; do not put wallet keys or seed phrases in Render
+environment variables.
 
 ## 14. Testing
 

@@ -4,22 +4,24 @@ from __future__ import annotations
 
 import argparse
 from contextlib import closing
-import json
 import logging
 import os
 import sqlite3
 from datetime import datetime, timedelta, timezone
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
 
 from backend.gas_prediction import generate_predictions, load_gas_data
+from flask import Flask, jsonify, request, send_from_directory
+from flask_cors import CORS
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB_ROOT = ROOT / "web"
 DEFAULT_DB_PATH = Path(__file__).resolve().parent / "gasguard_history.sqlite3"
 logger = logging.getLogger(__name__)
+
+app = Flask(__name__, static_folder=None)
+CORS(app, resources={r"/api/.*": {"origins": "*"}, r"/health": {"origins": "*"}})
 
 
 def _connect_database(db_path: Path) -> sqlite3.Connection:
@@ -138,74 +140,47 @@ def build_dashboard(
     }
 
 
-class GasGuardHandler(BaseHTTPRequestHandler):
-    server_version = "GasGuardLocalAPI/1.0"
+@app.get("/health")
+@app.get("/api/health")
+def health() -> tuple[Any, int]:
+    response = jsonify({"status": "ok"})
+    response.headers["Cache-Control"] = "no-store"
+    return response, 200
 
-    def do_GET(self) -> None:
-        parsed = urlparse(self.path)
-        if parsed.path == "/api/health":
-            self._send_json({"status": "ok"})
-            return
-        if parsed.path == "/api/dashboard":
-            try:
-                params = parse_qs(parsed.query)
-                horizon = int(params.get("horizon_hours", ["6"])[0])
-                window = int(params.get("window_hours", ["1"])[0])
-                csv_setting = os.environ.get("GASGUARD_DATA_CSV")
-                csv_path = Path(csv_setting) if csv_setting else None
-                db_path = Path(
-                    os.environ.get("GASGUARD_DB_PATH", str(DEFAULT_DB_PATH))
-                )
-                payload = build_dashboard(horizon, window, csv_path, db_path)
-            except (ValueError, OSError, sqlite3.Error) as exc:
-                logger.exception("Unable to build dashboard data")
-                self._send_json({"error": str(exc)}, status=500)
-                return
-            except Exception:
-                logger.exception("Unexpected error while building dashboard data")
-                self._send_json(
-                    {"error": "Unexpected error while building dashboard data"},
-                    status=500,
-                )
-                return
-            self._send_json(payload)
-            return
-        if parsed.path.startswith("/api/"):
-            self._send_json({"error": "API endpoint not found"}, status=404)
-            return
-        self._serve_static(parsed.path)
 
-    def _send_json(self, payload: dict[str, Any], status: int = 200) -> None:
-        body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(body)
+@app.get("/api/dashboard")
+def dashboard() -> tuple[Any, int]:
+    try:
+        horizon = int(request.args.get("horizon_hours", 6))
+        window = int(request.args.get("window_hours", 1))
+        csv_setting = os.environ.get("GASGUARD_DATA_CSV")
+        csv_path = Path(csv_setting) if csv_setting else None
+        db_path = Path(os.environ.get("GASGUARD_DB_PATH", str(DEFAULT_DB_PATH)))
+        payload = build_dashboard(horizon, window, csv_path, db_path)
+    except (ValueError, OSError, sqlite3.Error) as exc:
+        logger.exception("Unable to build dashboard data")
+        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        logger.exception("Unexpected error while building dashboard data")
+        return jsonify({"error": "Unexpected error while building dashboard data"}), 500
+    response = jsonify(payload)
+    response.headers["Cache-Control"] = "no-store"
+    return response, 200
 
-    def _serve_static(self, request_path: str) -> None:
-        relative_path = "index.html" if request_path == "/" else request_path.lstrip("/")
-        target = (WEB_ROOT / relative_path).resolve()
-        if not target.is_relative_to(WEB_ROOT.resolve()) or not target.is_file():
-            self.send_error(404)
-            return
-        content_type = {
-            ".css": "text/css; charset=utf-8",
-            ".html": "text/html; charset=utf-8",
-            ".js": "text/javascript; charset=utf-8",
-            ".svg": "image/svg+xml",
-        }.get(target.suffix.lower(), "application/octet-stream")
-        body = target.read_bytes()
-        self.send_response(200)
-        self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("X-Content-Type-Options", "nosniff")
-        self.end_headers()
-        self.wfile.write(body)
 
-    def log_message(self, format_string: str, *args: object) -> None:
-        logger.info("%s - %s", self.address_string(), format_string % args)
+@app.get("/api/<path:request_path>")
+def unknown_api_endpoint(request_path: str) -> tuple[Any, int]:
+    del request_path
+    return jsonify({"error": "API endpoint not found"}), 404
+
+
+@app.get("/")
+@app.get("/<path:request_path>")
+def serve_static(request_path: str = "") -> Any:
+    relative_path = request_path or "index.html"
+    response = send_from_directory(WEB_ROOT, relative_path)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 def main() -> None:
@@ -214,14 +189,8 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    server = ThreadingHTTPServer((args.host, args.port), GasGuardHandler)
     logger.info("GasGuard dashboard available at http://%s:%s", args.host, args.port)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        logger.info("Stopping GasGuard dashboard")
-    finally:
-        server.server_close()
+    app.run(host=args.host, port=args.port, threaded=True)
 
 
 if __name__ == "__main__":
