@@ -1,0 +1,57 @@
+[
+  {
+    "type": "function",
+    "name": "storePrediction",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "predictionId", "type": "uint256" },
+      { "name": "predictedGasFeeWei", "type": "uint256" },
+      { "name": "predictionTimestamp", "type": "uint256" },
+      { "name": "recommendedWindowStart", "type": "uint256" },
+      { "name": "recommendedWindowEnd", "type": "uint256" },
+      { "name": "predictionHash", "type": "bytes32" },
+      { "name": "modelVersion", "type": "string" }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "getPrediction",
+    "stateMutability": "view",
+    "inputs": [{ "name": "predictionId", "type": "uint256" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          { "name": "predictionId", "type": "uint256" },
+          { "name": "predictedGasFeeWei", "type": "uint256" },
+          { "name": "predictionTimestamp", "type": "uint256" },
+          { "name": "recommendedWindowStart", "type": "uint256" },
+          { "name": "recommendedWindowEnd", "type": "uint256" },
+          { "name": "predictionHash", "type": "bytes32" },
+          { "name": "modelVersion", "type": "string" }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "verifyPrediction",
+    "stateMutability": "view",
+    "inputs": [
+      { "name": "predictionId", "type": "uint256" },
+      { "name": "predictionHash", "type": "bytes32" }
+    ],
+    "outputs": [{ "name": "", "type": "bool" }]
+  },
+  {
+    "type": "event",
+    "name": "PredictionStored",
+    "anonymous": false,
+    "inputs": [
+      { "name": "predictionId", "type": "uint256", "indexed": true },
+      { "name": "predictionHash", "type": "bytes32", "indexed": true }
+    ]
+  }
+]

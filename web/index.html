@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101814">
+    <meta name="description" content="GasGuard AI predicts lower-fee transaction windows on Ethereum Sepolia.">
+    <title>GasGuard AI — Gas intelligence</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Main navigation">
+        <a class="brand" href="/" aria-label="GasGuard AI home">
+          <span class="brand-mark" aria-hidden="true">G</span>
+          <span>gasguard<span class="brand-ai">.ai</span></span>
+        </a>
+        <div class="nav-label">WORKSPACE</div>
+        <a class="nav-link active" href="#overview"><span aria-hidden="true">◫</span> Overview</a>
+        <a class="nav-link" href="#forecast"><span aria-hidden="true">⌁</span> Forecast</a>
+        <a class="nav-link" href="#history"><span aria-hidden="true">◷</span> History</a>
+        <div class="sidebar-bottom">
+          <div class="network-mini"><span class="pulse-dot"></span><span>Sepolia testnet</span></div>
+          <p>Gas intelligence, without the guesswork.</p>
+          <span class="version">GASGUARD AI · TESTNET BUILD</span>
+        </div>
+      </aside>
+
+      <main class="main-content" id="overview">
+        <header class="topbar">
+          <div class="breadcrumb">Workspace <span>/</span> <strong>Overview</strong></div>
+          <div class="topbar-actions">
+            <span class="network-pill"><span class="pulse-dot"></span> Ethereum Sepolia Testnet</span>
+            <button class="button button-wallet" id="connect-wallet" type="button">Connect wallet</button>
+          </div>
+        </header>
+
+        <div class="page-wrap">
+          <section class="page-heading">
+            <div>
+              <div class="eyebrow"><span class="eyebrow-line"></span> GAS INTELLIGENCE</div>
+              <h1>Good morning. <span class="heading-muted">Here's your gas outlook.</span></h1>
+              <p class="page-subtitle">A clearer view of the right moment to transact.</p>
+            </div>
+            <div class="heading-meta">
+              <span class="testnet-badge">◇ &nbsp;NO REAL MONEY</span>
+              <span class="updated-at" id="updated-at">Loading latest analysis…</span>
+            </div>
+          </section>
+
+          <div class="notice notice-loading" id="data-notice" role="status" aria-live="polite">
+            Loading gas analysis from the backend…
+          </div>
+
+          <section class="metric-grid" aria-label="Gas overview">
+            <article class="card metric-card current-card">
+              <div class="card-label">CURRENT GAS FEE <span class="info-dot" title="Latest available observation">i</span></div>
+              <div class="metric-value"><span id="current-fee">—</span><small>Gwei</small></div>
+              <div class="metric-foot"><span class="status-dot" id="current-status-dot"></span><span id="current-status">Checking current conditions</span></div>
+            </article>
+            <article class="card metric-card">
+              <div class="card-label">GASGUARD SCORE <span class="info-dot" title="Validation-derived heuristic, not probability">i</span></div>
+              <div class="metric-value"><span id="gasguard-score">—</span><small>/ 100</small></div>
+              <div class="metric-foot"><span class="score-spark" aria-hidden="true">↗</span><span>Validation-based estimate</span></div>
+            </article>
+            <article class="card metric-card">
+              <div class="card-label">MODEL CONFIDENCE <span class="info-dot" title="Heuristic derived from holdout WMAPE and validation sample count">i</span></div>
+              <div class="metric-value"><span id="confidence">—</span><small>%</small></div>
+              <div class="metric-foot"><span id="validation-detail">Measured on holdout data</span></div>
+            </article>
+            <article class="card metric-card">
+              <div class="card-label">MODEL ERROR (MAE)</div>
+              <div class="metric-value"><span id="mae">—</span><small>Gwei</small></div>
+              <div class="metric-foot">Historical validation error</div>
+            </article>
+          </section>
+
+          <section class="recommendation card" id="recommendation" aria-labelledby="recommendation-title">
+            <div class="recommendation-main">
+              <div class="recommendation-kicker"><span class="recommendation-icon" aria-hidden="true">✳</span> GASGUARD RECOMMENDS</div>
+              <h2 id="recommendation-title">Finding your next low-fee window</h2>
+              <p class="recommendation-copy" id="why-wait">The recommendation will appear when backend analysis is ready.</p>
+              <div class="decision-options" id="decision-options" aria-label="Simulated send or wait estimates"></div>
+              <p class="simulation-note">SIMULATED 5–15 MIN ESTIMATE · interpolated from the hourly forecast; not a live short-term gas feed.</p>
+              <div class="recommendation-window">
+                <span class="window-caption">RECOMMENDED WINDOW</span>
+                <strong id="window-range">—</strong>
+                <span id="window-duration">—</span>
+              </div>
+              <div class="recommendation-actions">
+                <span class="recommendation-status"><span class="status-dot" id="recommendation-dot"></span><span id="recommendation-status">Calculating recommendation</span></span>
+                <span class="recommendation-note">Review gas before signing any transaction.</span>
+              </div>
+              <button class="button button-anchor" id="anchor-prediction" type="button" disabled hidden>🔐 Anchor Prediction</button>
+              <button class="button button-verify" id="verify-on-chain" type="button" disabled aria-describedby="verify-help">✓ Verify On-Chain</button>
+              <p class="verification-help" id="verify-help">Read-only Sepolia verification becomes available after a prediction is anchored.</p>
+            </div>
+            <div class="recommendation-savings">
+              <span class="savings-caption">BEST-WINDOW SAVINGS</span>
+              <div class="savings-value"><span id="savings-percent">—</span><small>%</small></div>
+              <span class="savings-unit" id="savings-gwei">— Gwei estimated</span>
+              <div class="savings-divider"></div>
+              <span class="vs-current">Compared with current fee · hourly model window</span>
+              <div class="recommendation-graphic" aria-hidden="true">
+                <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="insight-grid" aria-label="Best window and gas-fee risk">
+            <article class="card best-window-card">
+              <div class="section-heading">
+                <div><div class="card-label">BEST TRANSACTION WINDOW</div><h2 id="best-window-time">—</h2></div>
+                <span class="window-confidence" id="window-confidence">— confidence</span>
+              </div>
+              <div class="best-window-details">
+                <span>Expected gas <strong id="best-window-fee">— Gwei</strong></span>
+                <span id="best-window-explanation">Lower-fee window predicted.</span>
+              </div>
+            </article>
+            <article class="card risk-card">
+              <div class="section-heading">
+                <div><div class="card-label">GAS-FEE RISK</div><h2>Timing signal</h2></div>
+                <span class="risk-pill risk-medium" id="risk-level">MEDIUM</span>
+              </div>
+              <p id="risk-explanation">Consider waiting while the forecast is evaluated.</p>
+              <span class="simulation-note">DEMO SIGNAL · based on the current forecast</span>
+            </article>
+          </section>
+
+          <section class="content-grid">
+            <article class="card chart-card" id="forecast">
+              <div class="section-heading">
+                <div><div class="card-label">MODEL PERFORMANCE</div><h2>Predicted vs. actual</h2></div>
+                <div class="chart-legend">
+                  <span><i class="legend-dot actual"></i> Actual</span>
+                  <span><i class="legend-dot predicted"></i> Predicted</span>
+                  <span><i class="legend-dash"></i> Forecast</span>
+                </div>
+              </div>
+              <p class="chart-subtitle">Chronological validation holdout followed by the next <span id="forecast-hours">—</span> forecast hours · Gwei</p>
+              <div class="chart-wrap" id="chart-wrap">
+                <div class="chart-loading">Waiting for analysis data…</div>
+              </div>
+              <div class="chart-axis-note"><span>Historical validation</span><span>Forecast →</span></div>
+            </article>
+
+            <article class="card forecast-card">
+              <div class="section-heading forecast-title">
+                <div><div class="card-label">UP NEXT</div><h2>Hourly forecast</h2></div>
+                <span class="live-badge"><i></i> <span id="source-label">—</span></span>
+              </div>
+              <div class="forecast-list" id="forecast-list"><div class="forecast-placeholder">Forecast loading…</div></div>
+              <div class="forecast-foot"><span class="forecast-method"></span><span id="model-version">—</span></div>
+            </article>
+          </section>
+
+          <section class="insight-grid performance-grid" aria-label="Prediction performance and integrity">
+            <article class="card accuracy-card">
+              <div class="section-heading">
+                <div><div class="card-label">ACCURACY & PERFORMANCE</div><h2>Validation snapshot</h2></div>
+                <span class="demo-chip" id="accuracy-source">DEMO / SIMULATED</span>
+              </div>
+              <div class="accuracy-metrics">
+                <div><strong id="accuracy-total">—</strong><span>Total predictions</span></div>
+                <div><strong id="accuracy-error">—</strong><span>Average holdout error · Gwei</span></div>
+                <div><strong id="accuracy-percent">—</strong><span>Accuracy estimate</span></div>
+                <div><strong id="accuracy-verified">0</strong><span>Verified on-chain · saved records</span></div>
+              </div>
+              <p class="integrity-note" id="accuracy-disclaimer">Accuracy estimate is 100 − holdout WMAPE; validation metric, not a real-world guarantee.</p>
+            </article>
+            <article class="card integrity-card">
+              <div class="section-heading">
+                <div><div class="card-label">INTEGRITY CHECK · LOCAL TAMPER DEMO</div><h2>Prediction fingerprint</h2></div>
+                <span class="integrity-status" id="integrity-status">Checking local hash…</span>
+              </div>
+              <div class="integrity-flow" aria-label="Prediction to hash to blockchain anchor to verification">
+                <span>Prediction</span><i aria-hidden="true">↓</i><span>Hash</span><i aria-hidden="true">↓</i><span>Blockchain Anchor</span><i aria-hidden="true">↓</i><span>Verification</span>
+              </div>
+              <div class="integrity-hash"><span>Local SHA-256</span><code id="integrity-hash">—</code></div>
+              <label class="integrity-input-label" id="integrity-input-label" for="integrity-value">Local demo gas value · Gwei</label>
+              <div class="integrity-controls">
+                <input id="integrity-value" type="number" min="0" step="0.001" aria-label="Local demo prediction gas fee in Gwei">
+                <button class="button" id="test-tamper" type="button">Test Tamper Detection</button>
+                <button class="button button-verify" id="reset-integrity" type="button">Reset</button>
+              </div>
+              <p class="integrity-note" id="integrity-message">Local-only integrity demo. No blockchain record or transaction is changed.</p>
+              <div class="integrity-chain-status">Sepolia record: <strong id="integrity-chain-status">Not anchored</strong></div>
+            </article>
+          </section>
+
+          <section class="bottom-grid">
+            <article class="card history-card" id="history">
+              <div class="section-heading">
+                <div><div class="card-label">LOCAL RUNS & REAL ANCHORS</div><h2>Prediction history</h2></div>
+                <span class="history-count" id="history-count">— saved runs</span>
+              </div>
+              <div class="history-table-wrap">
+                <table>
+                  <thead><tr><th>PREDICTION ID</th><th>PREDICTED FEE</th><th>TIMESTAMP</th><th>RECOMMENDED WINDOW</th><th>MODEL VERSION</th><th>VERIFICATION</th></tr></thead>
+                  <tbody id="history-body"><tr><td colspan="6" class="table-empty">Loading prediction runs…</td></tr></tbody>
+                </table>
+              </div>
+              <p class="history-note">Local run IDs are not blockchain IDs. “VERIFIED ON-CHAIN” appears only after the real Sepolia read-only verification succeeds.</p>
+            </article>
+
+            <article class="card status-card">
+              <div class="section-heading"><div><div class="card-label">ON-CHAIN & WALLET</div><h2>Transaction status</h2></div></div>
+              <div class="status-row">
+                <span class="status-icon status-pending" aria-hidden="true">◇</span>
+                <div><strong>Blockchain verification</strong><span id="blockchain-status">Not configured</span></div>
+                <span class="status-tag tag-neutral" id="blockchain-tag">NOT VERIFIED</span>
+              </div>
+              <div class="status-row">
+                <span class="status-icon status-pending" aria-hidden="true">↗</span>
+                <div><strong>Testnet transaction</strong><span id="transaction-status">No transaction initiated.</span></div>
+                <span class="status-tag tag-neutral" id="transaction-tag">NOT SUBMITTED</span>
+              </div>
+              <div class="chain-config">
+                <label for="contract-address">DEPLOYED REGISTRY ADDRESS</label>
+                <div class="contract-input-row">
+                  <input id="contract-address" type="text" autocomplete="off" spellcheck="false" readonly aria-describedby="contract-config-status">
+                  <button class="button button-config" id="load-contract" type="button">Load</button>
+                </div>
+                <span class="config-status" id="contract-config-status">Enter your deployed Sepolia registry address.</span>
+              </div>
+              <div class="wallet-detail" id="wallet-detail">Connect MetaMask to Sepolia to load the registry and anchor a prediction. No private key is requested.</div>
+              <div class="chain-result" id="chain-result" aria-live="polite" hidden></div>
+              <section class="onchain-record" id="onchain-record" aria-live="polite" hidden>
+                <div class="onchain-record-heading">
+                  <strong id="verification-title">On-chain verification</strong>
+                  <span class="status-tag tag-neutral" id="verification-tag">NOT VERIFIED</span>
+                </div>
+                <p id="verification-message">No prediction has been verified yet.</p>
+                <dl>
+                  <div><dt>Network</dt><dd>Ethereum Sepolia</dd></div>
+                  <div><dt>Contract</dt><dd id="record-contract">—</dd></div>
+                  <div><dt>Prediction ID</dt><dd id="record-prediction-id">—</dd></div>
+                  <div><dt>Predicted gas fee</dt><dd id="record-gas-fee">—</dd></div>
+                  <div><dt>Prediction time</dt><dd id="record-timestamp">—</dd></div>
+                  <div><dt>Recommended window</dt><dd id="record-window">—</dd></div>
+                  <div><dt>Model version</dt><dd id="record-model-version">—</dd></div>
+                  <div><dt>Stored hash</dt><dd id="record-hash">—</dd></div>
+                </dl>
+              </section>
+              <div class="security-note"><span aria-hidden="true">◆</span><span>Contract calls are Sepolia-only and send 0 ETH. MetaMask may use Sepolia test ETH for network gas. No private keys are requested or stored.</span></div>
+            </article>
+          </section>
+
+          <footer class="footer">
+            <span>GasGuard AI <span class="footer-divider">·</span> Ethereum Sepolia Testnet <span class="footer-divider">·</span> NO REAL MONEY</span>
+            <span id="footer-validation">Model evaluation pending</span>
+          </footer>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
