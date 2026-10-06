@@ -1468,10 +1468,14 @@ function renderDashboard(data) {
 
 async function refreshDashboard() {
   try {
-    const response = await fetch("/api/dashboard?horizon_hours=8&window_hours=1", {
+    const backendBaseUrl = window.GASGUARD_API_BASE_URL ?? "";
+    const response = await fetch(
+      `${backendBaseUrl}/api/dashboard?horizon_hours=8&window_hours=1`,
+      {
       headers: { Accept: "application/json" },
       cache: "no-store",
-    });
+      },
+    );
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.error || `Dashboard API returned ${response.status}`);
