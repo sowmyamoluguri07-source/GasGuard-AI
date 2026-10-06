@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from backend.gas_prediction import generate_predictions, load_gas_data
+from gas_prediction import generate_predictions, load_gas_data
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
