@@ -7,8 +7,10 @@ from pathlib import Path
 from backend.gas_prediction import (
     GasHistory,
     GasObservation,
+    calculate_best_time_recommendation,
     calculate_cheapest_window,
     calculate_savings,
+    calculate_usd_savings,
     generate_predictions,
     load_gas_data,
 )
@@ -103,6 +105,37 @@ class WindowAndSavingsTests(unittest.TestCase):
             calculate_savings(20.0, 25.0),
             {"savings_gwei": 0.0, "savings_percent": 0.0},
         )
+
+    def test_calculates_usd_savings(self):
+        # 10 Gwei savings on 150,000 gas swap with ETH price $2600
+        # 150,000 * 10 * 1e-9 * 2600 = $3.90
+        usd = calculate_usd_savings(10.0, 2600.0)
+        self.assertEqual(usd["swap_usd_saved"], 3.9)
+        self.assertEqual(usd["transfer_usd_saved"], 0.55)
+        self.assertEqual(usd["eth_usd_price"], 2600.0)
+
+    def test_best_time_recommendation_wait_and_send_now(self):
+        # When savings exist and start is in future
+        now_future = (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
+        rec_wait = calculate_best_time_recommendation(
+            current_fee=25.0,
+            cheapest_window={"start": now_future, "end": now_future, "average_predicted_gas_fee_gwei": 15.0},
+            savings={"savings_gwei": 10.0, "savings_percent": 40.0},
+            usd_savings={"swap_usd_saved": 4.20, "transfer_usd_saved": 0.60},
+        )
+        self.assertEqual(rec_wait["action"], "WAIT")
+        self.assertIn("Wait 2 hours", rec_wait["headline"])
+        self.assertIn("$4.20", rec_wait["banner_message"])
+
+        # When current fee is lowest
+        rec_now = calculate_best_time_recommendation(
+            current_fee=15.0,
+            cheapest_window={"start": now_future, "end": now_future, "average_predicted_gas_fee_gwei": 15.0},
+            savings={"savings_gwei": 0.0, "savings_percent": 0.0},
+            usd_savings={"swap_usd_saved": 0.0, "transfer_usd_saved": 0.0},
+        )
+        self.assertEqual(rec_now["action"], "SEND_NOW")
+        self.assertEqual(rec_now["headline"], "Transact Now")
 
 
 if __name__ == "__main__":

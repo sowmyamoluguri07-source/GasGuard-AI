@@ -11,7 +11,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from gas_prediction import generate_predictions, load_gas_data
+try:
+    from backend.gas_prediction import generate_predictions, load_gas_data
+except ImportError:
+    from gas_prediction import generate_predictions, load_gas_data
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
@@ -52,9 +55,10 @@ def build_dashboard(
     window_hours: int = 1,
     csv_path: Path | None = None,
     db_path: Path = DEFAULT_DB_PATH,
+    mode: str = "demo",
 ) -> dict[str, Any]:
     """Build a dashboard payload from the configured history and actual model run."""
-    history = load_gas_data(csv_path)
+    history = load_gas_data(csv_path, mode=mode)
     prediction = generate_predictions(history, horizon_hours, window_hours)
     generated_at = datetime.now(timezone.utc)
 
@@ -119,6 +123,9 @@ def build_dashboard(
         "validation_comparison": prediction["validation_comparison"],
         "cheapest_window": prediction["cheapest_window"],
         "expected_savings": prediction["expected_savings"],
+        "eth_usd_price": prediction.get("eth_usd_price", 2600.0),
+        "usd_savings": prediction.get("usd_savings", {}),
+        "recommendation": prediction.get("recommendation", {}),
         "validation": prediction["validation"],
         "gasguard_score": round(
             float(prediction["validation"]["confidence_score_percent"])
@@ -153,10 +160,11 @@ def dashboard() -> tuple[Any, int]:
     try:
         horizon = int(request.args.get("horizon_hours", 6))
         window = int(request.args.get("window_hours", 1))
+        mode = request.args.get("mode", "demo").strip().lower()
         csv_setting = os.environ.get("GASGUARD_DATA_CSV")
         csv_path = Path(csv_setting) if csv_setting else None
         db_path = Path(os.environ.get("GASGUARD_DB_PATH", str(DEFAULT_DB_PATH)))
-        payload = build_dashboard(horizon, window, csv_path, db_path)
+        payload = build_dashboard(horizon, window, csv_path, db_path, mode=mode)
     except (ValueError, OSError, sqlite3.Error) as exc:
         logger.exception("Unable to build dashboard data")
         return jsonify({"error": str(exc)}), 500

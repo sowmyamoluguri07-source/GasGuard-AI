@@ -32,6 +32,10 @@
         <header class="topbar">
           <div class="breadcrumb">Workspace <span>/</span> <strong>Overview</strong></div>
           <div class="topbar-actions">
+            <div class="mode-toggle-group" role="group" aria-label="Data source mode">
+              <button class="mode-btn active" id="btn-mode-demo" type="button" title="Use synthetic cyclical data for demo">🧪 Demo Data</button>
+              <button class="mode-btn" id="btn-mode-live" type="button" title="Fetch real on-chain gas feed via public RPC">🟢 Live Gas Feed</button>
+            </div>
             <span class="network-pill"><span class="pulse-dot"></span> Ethereum Sepolia Testnet</span>
             <button class="button button-wallet" id="connect-wallet" type="button">Connect wallet</button>
           </div>
@@ -42,7 +46,7 @@
             <div>
               <div class="eyebrow"><span class="eyebrow-line"></span> GAS INTELLIGENCE</div>
               <h1>Good morning. <span class="heading-muted">Here's your gas outlook.</span></h1>
-              <p class="page-subtitle">A clearer view of the right moment to transact.</p>
+              <p class="page-subtitle">AI-powered forecasting to optimize when you transact on Ethereum Sepolia.</p>
             </div>
             <div class="heading-meta">
               <span class="testnet-badge">◇ &nbsp;NO REAL MONEY</span>
@@ -81,28 +85,54 @@
             <div class="recommendation-main">
               <div class="recommendation-kicker"><span class="recommendation-icon" aria-hidden="true">✳</span> GASGUARD RECOMMENDS</div>
               <h2 id="recommendation-title">Finding your next low-fee window</h2>
+              
+              <div class="best-time-banner" id="best-time-banner">
+                <span class="best-time-pill" id="best-time-action">ANALYZING</span>
+                <span class="best-time-headline" id="best-time-headline">Evaluating upcoming forecast…</span>
+              </div>
+
               <p class="recommendation-copy" id="why-wait">The recommendation will appear when backend analysis is ready.</p>
+
+              <div class="tx-type-selector">
+                <span class="tx-type-label">CALCULATE SAVINGS FOR TRANSACTION TYPE:</span>
+                <div class="tx-type-pills" id="tx-type-pills">
+                  <button class="tx-type-pill active" data-tx="dex_swap" type="button">Uniswap Swap (150k gas)</button>
+                  <button class="tx-type-pill" data-tx="standard_transfer" type="button">ETH Transfer (21k gas)</button>
+                  <button class="tx-type-pill" data-tx="token_transfer" type="button">Token Transfer (65k gas)</button>
+                  <button class="tx-type-pill" data-tx="contract_interaction" type="button">NFT / Contract (250k gas)</button>
+                </div>
+              </div>
+
               <div class="decision-options" id="decision-options" aria-label="Simulated send or wait estimates"></div>
               <p class="simulation-note">SIMULATED 5–15 MIN ESTIMATE · interpolated from the hourly forecast; not a live short-term gas feed.</p>
+              
               <div class="recommendation-window">
                 <span class="window-caption">RECOMMENDED WINDOW</span>
                 <strong id="window-range">—</strong>
                 <span id="window-duration">—</span>
               </div>
+              
               <div class="recommendation-actions">
                 <span class="recommendation-status"><span class="status-dot" id="recommendation-dot"></span><span id="recommendation-status">Calculating recommendation</span></span>
                 <span class="recommendation-note">Review gas before signing any transaction.</span>
               </div>
-              <button class="button button-anchor" id="anchor-prediction" type="button" disabled hidden>🔐 Anchor Prediction</button>
-              <button class="button button-verify" id="verify-on-chain" type="button" disabled aria-describedby="verify-help">✓ Verify On-Chain</button>
+              
+              <div class="action-buttons-row">
+                <button class="button button-testnet-tx" id="send-testnet-tx" type="button" disabled title="Send a test 0 ETH transaction to test current gas fees on Sepolia">🚀 Send Testnet Transaction (0 ETH)</button>
+                <button class="button button-anchor" id="anchor-prediction" type="button" disabled hidden>🔐 Anchor Prediction</button>
+                <button class="button button-verify" id="verify-on-chain" type="button" disabled aria-describedby="verify-help">✓ Verify On-Chain</button>
+              </div>
               <p class="verification-help" id="verify-help">Read-only Sepolia verification becomes available after a prediction is anchored.</p>
             </div>
+            
             <div class="recommendation-savings">
-              <span class="savings-caption">BEST-WINDOW SAVINGS</span>
+              <span class="savings-caption">ESTIMATED MONEY SAVINGS</span>
+              <div class="savings-usd-value"><span id="savings-usd">$0.00</span></div>
               <div class="savings-value"><span id="savings-percent">—</span><small>%</small></div>
               <span class="savings-unit" id="savings-gwei">— Gwei estimated</span>
+              <span class="savings-eth" id="savings-eth">— ETH estimated</span>
               <div class="savings-divider"></div>
-              <span class="vs-current">Compared with current fee · hourly model window</span>
+              <span class="vs-current" id="savings-context">Compared with sending now · ETH at <strong id="eth-price-display">$2,600</strong></span>
               <div class="recommendation-graphic" aria-hidden="true">
                 <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
               </div>

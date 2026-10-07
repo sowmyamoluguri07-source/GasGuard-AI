@@ -9,6 +9,7 @@ const dashboardElements = {
   contractConfigStatus: document.querySelector("#contract-config-status"),
   anchorButton: document.querySelector("#anchor-prediction"),
   verifyButton: document.querySelector("#verify-on-chain"),
+  sendTestnetTxButton: document.querySelector("#send-testnet-tx"),
   chainResult: document.querySelector("#chain-result"),
   onchainRecord: document.querySelector("#onchain-record"),
 };
@@ -26,6 +27,8 @@ let anchoredHistory = [];
 let integrityBaseline = null;
 let integrityCheckSequence = 0;
 let integrityValueEdited = false;
+let currentDataSourceMode = "demo";
+let selectedTxType = "dex_swap";
 
 const SEPOLIA_EXPLORER = "https://sepolia.etherscan.io";
 const MASK_64 = (1n << 64n) - 1n;
@@ -256,6 +259,13 @@ function updateAnchorAvailability() {
     !anchoredPrediction ||
     transactionInProgress ||
     verificationInProgress;
+  if (dashboardElements.sendTestnetTxButton) {
+    dashboardElements.sendTestnetTxButton.disabled =
+      !window.ethereum ||
+      !walletAddress ||
+      chainId?.toLowerCase() !== SEPOLIA_CHAIN_ID ||
+      transactionInProgress;
+  }
 }
 
 function isValidPrediction(data) {
@@ -931,6 +941,76 @@ async function anchorPrediction() {
   }
 }
 
+async function sendTestnetTransaction() {
+  if (transactionInProgress) return;
+  if (!window.ethereum || !walletAddress) {
+    setTransactionUi("failed", "Please connect MetaMask first.");
+    return;
+  }
+  if (chainId?.toLowerCase() !== SEPOLIA_CHAIN_ID) {
+    setTransactionUi("failed", "Please switch MetaMask to Ethereum Sepolia Testnet.");
+    return;
+  }
+
+  transactionInProgress = true;
+  updateAnchorAvailability();
+  setTransactionUi(
+    "pending",
+    "Awaiting confirmation in MetaMask for 0 ETH testnet transaction…",
+  );
+
+  let transactionHash = null;
+  try {
+    const txParams = {
+      from: walletAddress,
+      to: walletAddress,
+      value: "0x0",
+      data: "0x",
+    };
+    transactionHash = await providerRequest("eth_sendTransaction", [txParams]);
+    setTransactionUi(
+      "pending",
+      "Transaction submitted to Sepolia: waiting for block confirmation…",
+      transactionHash,
+    );
+
+    const receipt = await waitForReceipt(transactionHash);
+    if (!receipt) {
+      setTransactionUi(
+        "pending",
+        "Transaction submitted and waiting for block confirmation on Sepolia.",
+        transactionHash,
+      );
+      return;
+    }
+
+    if (receipt.status !== "0x1") {
+      setTransactionUi(
+        "failed",
+        "Failed · Transaction reverted on Sepolia.",
+        transactionHash,
+      );
+      return;
+    }
+
+    const gasUsed = receipt.gasUsed ? BigInt(receipt.gasUsed).toString() : "21000";
+    setTransactionUi(
+      "confirmed",
+      `Success! 0 ETH testnet transaction confirmed on Sepolia. Gas used: ${gasUsed}.`,
+      transactionHash,
+    );
+  } catch (error) {
+    console.error("Testnet transaction failed:", error);
+    const message = error.code === 4001
+      ? "Failed · Transaction was rejected in MetaMask."
+      : `Failed · ${error.message}`;
+    setTransactionUi("failed", message, transactionHash);
+  } finally {
+    transactionInProgress = false;
+    updateAnchorAvailability();
+  }
+}
+
 function number(value, digits = 2) {
   const parsed = Number(value);
   return Number.isFinite(parsed)
@@ -1038,6 +1118,42 @@ function renderRecommendation(data) {
   document.querySelector("#window-duration").textContent = `${window.duration_hours} hour${window.duration_hours === 1 ? "" : "s"}`;
   document.querySelector("#savings-percent").textContent = number(savingPercent, 1);
   document.querySelector("#savings-gwei").textContent = `${number(savingGwei, 3)} Gwei estimated`;
+
+  // Render Best Time to Send Banner
+  const rec = data.recommendation;
+  const bestTimeAction = document.querySelector("#best-time-action");
+  const bestTimeHeadline = document.querySelector("#best-time-headline");
+  if (bestTimeAction && rec) {
+    bestTimeAction.textContent = rec.action === "WAIT" ? "WAIT" : "SEND NOW";
+    bestTimeAction.className = `best-time-pill ${rec.action === "WAIT" ? "action-wait" : "action-send"}`;
+    bestTimeHeadline.textContent = rec.banner_message || rec.headline;
+  }
+
+  // Render USD & ETH savings
+  const ethPrice = data.eth_usd_price || data.usd_savings?.eth_usd_price || 2600.0;
+  const ethPriceDisplay = document.querySelector("#eth-price-display");
+  if (ethPriceDisplay) {
+    ethPriceDisplay.textContent = `$${number(ethPrice, 2)}`;
+  }
+
+  const txSavings = data.usd_savings?.savings_by_tx_type?.[selectedTxType];
+  const usdValueEl = document.querySelector("#savings-usd");
+  const ethValueEl = document.querySelector("#savings-eth");
+  if (usdValueEl) {
+    if (txSavings && txSavings.usd_saved > 0) {
+      usdValueEl.textContent = txSavings.usd_saved_formatted || `$${number(txSavings.usd_saved, 2)}`;
+    } else {
+      usdValueEl.textContent = `$0.00`;
+    }
+  }
+  if (ethValueEl) {
+    if (txSavings && txSavings.eth_saved > 0) {
+      ethValueEl.textContent = `${(txSavings.eth_saved).toFixed(6)} ETH estimated`;
+    } else {
+      ethValueEl.textContent = `0.000000 ETH estimated`;
+    }
+  }
+
   document.querySelector("#recommendation-status").textContent = usefulWait
     ? "Potential savings predicted"
     : "No savings predicted";
@@ -1085,7 +1201,7 @@ function renderForecast(data) {
   document.querySelector("#forecast-hours").textContent = forecast.length;
   document.querySelector("#model-version").textContent = data.model_version;
   document.querySelector("#source-label").textContent =
-    data.data_source === "live" ? "Live data" : `${data.data_source} data`;
+    data.data_source === "live" ? "Live on-chain feed" : `${data.data_source} data`;
   document.querySelector("#forecast-list").innerHTML = forecast
     .map((point) => {
       const time = new Date(point.timestamp);
@@ -1093,10 +1209,14 @@ function renderForecast(data) {
       const cheapest =
         time.getTime() >= cheapestStart && time.getTime() <= cheapestEnd;
       const width = 14 + ((fee - minFee) / spread) * 86;
+      const offset = point.hour_offset ? `+${point.hour_offset}h` : "";
       return `<div class="forecast-row${cheapest ? " is-cheapest" : ""}">
-        <span class="forecast-time">${dateTime(time, { weekday: "short", hour: "numeric" })}</span>
+        <span class="forecast-time">${dateTime(time, { weekday: "short", hour: "numeric" })} <small style="color:var(--muted)">(${offset})</small></span>
         <span class="forecast-bar-track" aria-label="${number(fee)} Gwei"><span class="forecast-bar" style="width:${width}%"></span></span>
-        <span class="forecast-fee">${number(fee)} <small>Gwei</small></span>
+        <span class="forecast-fee">
+          ${number(fee)} <small>Gwei</small>
+          ${cheapest ? '<span class="forecast-best-badge">Lowest</span>' : ""}
+        </span>
       </div>`;
     })
     .join("");
@@ -1466,14 +1586,23 @@ function renderDashboard(data) {
   }
 }
 
+async function setDataSourceMode(mode) {
+  if (currentDataSourceMode === mode) return;
+  currentDataSourceMode = mode;
+  document.querySelector("#btn-mode-demo")?.classList.toggle("active", mode === "demo");
+  document.querySelector("#btn-mode-live")?.classList.toggle("active", mode === "live");
+  showNotice(`Fetching ${mode === "live" ? "Live On-Chain Gas Data" : "Synthetic Demo Data"}…`, "loading");
+  await refreshDashboard();
+}
+
 async function refreshDashboard() {
   try {
     const backendBaseUrl = window.GASGUARD_API_BASE_URL ?? "";
     const response = await fetch(
-      `${backendBaseUrl}/api/dashboard?horizon_hours=8&window_hours=1`,
+      `${backendBaseUrl}/api/dashboard?horizon_hours=8&window_hours=1&mode=${currentDataSourceMode}`,
       {
-      headers: { Accept: "application/json" },
-      cache: "no-store",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
       },
     );
     const data = await response.json();
@@ -1492,7 +1621,22 @@ async function refreshDashboard() {
   }
 }
 
+document.querySelector("#btn-mode-demo")?.addEventListener("click", () => setDataSourceMode("demo"));
+document.querySelector("#btn-mode-live")?.addEventListener("click", () => setDataSourceMode("live"));
+
+document.querySelectorAll(".tx-type-pill").forEach((pill) => {
+  pill.addEventListener("click", () => {
+    document.querySelectorAll(".tx-type-pill").forEach((p) => p.classList.remove("active"));
+    pill.classList.add("active");
+    selectedTxType = pill.dataset.tx;
+    if (dashboardData) {
+      renderRecommendation(dashboardData);
+    }
+  });
+});
+
 dashboardElements.connectButton.addEventListener("click", connectWallet);
+dashboardElements.sendTestnetTxButton?.addEventListener("click", sendTestnetTransaction);
 dashboardElements.loadContractButton.addEventListener("click", async () => {
   registryLoaded = false;
   updateAnchorAvailability();

@@ -307,6 +307,163 @@ td:first-child { color: #8d9b91; }
   .chart-wrap { height: 175px; }
   .footer { flex-direction: column; font-size: 7px; }
 }
+
+/* Mode Toggle in Topbar */
+.mode-toggle-group {
+  display: flex;
+  align-items: center;
+  background: #141c16;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+.mode-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font: 600 11px var(--mono);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.mode-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+.mode-btn.active {
+  background: #233325;
+  color: var(--green);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Best Time Recommendation Banner */
+.best-time-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(182, 242, 123, 0.08);
+  border: 1px solid rgba(182, 242, 123, 0.28);
+  border-radius: 9px;
+  margin: 12px 0 16px;
+}
+.best-time-pill {
+  font: 700 11px var(--mono);
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--green);
+  color: #111a13;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.best-time-pill.action-wait {
+  background: var(--yellow);
+  color: #1a1609;
+}
+.best-time-pill.action-send {
+  background: var(--green);
+  color: #111a13;
+}
+.best-time-headline {
+  color: #eaf3eb;
+  font: 600 14px var(--sans);
+  letter-spacing: -0.2px;
+}
+
+/* Transaction Type Selector */
+.tx-type-selector {
+  margin: 14px 0 12px;
+}
+.tx-type-label {
+  display: block;
+  font: 600 9px var(--mono);
+  letter-spacing: 0.9px;
+  color: #8fa092;
+  margin-bottom: 7px;
+}
+.tx-type-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tx-type-pill {
+  background: #17211a;
+  border: 1px solid #2d3c30;
+  color: #9cb0a2;
+  font: 500 11px var(--mono);
+  padding: 6px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tx-type-pill:hover {
+  background: #202d24;
+  color: var(--text);
+  border-color: #415745;
+}
+.tx-type-pill.active {
+  background: rgba(182, 242, 123, 0.16);
+  border-color: var(--green);
+  color: var(--green);
+  font-weight: 600;
+  box-shadow: 0 0 8px rgba(182, 242, 123, 0.15);
+}
+
+/* USD Savings Display */
+.savings-usd-value {
+  color: var(--green);
+  font: 800 clamp(38px, 3.4vw, 50px)/1 var(--display);
+  letter-spacing: -2px;
+  margin: 6px 0 2px;
+}
+.savings-eth {
+  display: block;
+  color: #8fa092;
+  font: 500 10px var(--mono);
+  margin-top: 3px;
+}
+
+/* Action buttons and Testnet Transaction */
+.action-buttons-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.button-testnet-tx {
+  background: #243527;
+  border: 1px solid #527555;
+  color: var(--green);
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(182, 242, 123, 0.14);
+}
+.button-testnet-tx:hover:not(:disabled) {
+  background: #2e4432;
+  border-color: var(--green);
+}
+
+/* Forecast Row Enhancements */
+.forecast-row.is-cheapest {
+  background: rgba(182, 242, 123, 0.09);
+  border-left: 3px solid var(--green);
+  padding-left: 8px;
+  border-radius: 4px;
+}
+.forecast-best-badge {
+  font: 700 8px var(--mono);
+  background: rgba(182, 242, 123, 0.22);
+  color: var(--green);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
